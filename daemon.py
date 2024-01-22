@@ -44,6 +44,11 @@ class KamstrupDaemon(multiprocessing.Process):
 
 		signal.signal(signal.SIGINT, self.signal_handler)
 
+		# we init the heat_meter and call run() on it, before attempting to init mqtt
+		# this way we keep the heat_meter awake in case we fail to contact the mqtt host
+		self.heat_meter = kamstrup(serial_cfg["com_port"], kamstrup_cfg["parameters"])
+		values = self.heat_meter.run()
+
 		if (mqtt_cfg["retain"].lower() == "true"):
 			retain = True
 		else:
@@ -58,8 +63,6 @@ class KamstrupDaemon(multiprocessing.Process):
 				mqtt_cfg["client"], mqtt_cfg["topic"], retain, int(mqtt_cfg["qos"]))
 		self.mqtt_handler.connect()
 		self.mqtt_handler.loop_start()
-
-		self.heat_meter = kamstrup(serial_cfg["com_port"], kamstrup_cfg["parameters"])
 	
 	def signal_handler(self, signal, handler):
 		self.running = False
